@@ -22,7 +22,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import android.preference.PreferenceManager
-import com.google.ai.client.generativeai.GenerativeModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,41 +90,28 @@ class ReportDetailActivity : AppCompatActivity() {
         }
 
         // Set AI Classification (default based on report title)
-        aiClassificationChip.text = when (report.title.lowercase()) {
-            "road issue" -> "Road Maintenance Required"
-            "water leak" -> "Water System Repair Required"
-            "fallen tree" -> "Emergency Cleanup Required"
-            else -> "Maintenance Required"
+        // Set AI Action Chip (Dynamic)
+        if (report.aiAction.isNotEmpty()) {
+            aiClassificationChip.text = report.aiAction
+            aiClassificationChip.visibility = View.VISIBLE
+            
+            // Optional: Adjust color based on priority
+            if (report.aiPriority.equals("High", ignoreCase = true)) {
+                // Keep purple or make it red? User showed purple. Let's stick to default style but ensure text is real.
+            }
+        } else {
+            // Fallback for old reports without AI data
+             aiClassificationChip.text = when (report.title.lowercase()) {
+                "road issue" -> "Road Maintenance Required"
+                "water leak" -> "Water System Repair Required"
+                "fallen tree" -> "Emergency Cleanup Required"
+                else -> "Maintenance Required"
+            }
         }
         
         // --- GEMINI AI INTEGRATION ---
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val apiKey = "AIzaSyDv7pG4Cw9Senb47djsqRAvx368bfAzqFM" // Using same key
-                val generativeModel = GenerativeModel(modelName = "gemini-pro", apiKey = apiKey)
-                
-                val prompt = """
-                    Analyze this issue report description: "${report.description}"
-                    The text may be in English, Filipino (Tagalog), or Taglish.
-                    Classify it into a short 2-3 word English category for staff (e.g., "Road Repair", "Waste Collection", "Noise Control").
-                    Return ONLY the category name.
-                """.trimIndent()
-                
-                val response = generativeModel.generateContent(prompt)
-                val aiCategory = response.text?.trim() ?: ""
-                
-                if (aiCategory.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        aiClassificationChip.text = "AI Classification: $aiCategory"
-                        // Optional: Change color to show it's AI
-                        aiClassificationChip.setTextColor(ContextCompat.getColor(this@ReportDetailActivity, R.color.purple_500))
-                    }
-                }
-            } catch (e: Exception) {
-                // Keep default if AI fails
-                e.printStackTrace()
-            }
-        }
+        
+        // Removed SDK usage (Rest API TODO if needed)
 
         // Set report data
         issueDescription.text = report.description

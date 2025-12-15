@@ -68,8 +68,8 @@ dependencies {
     // OSMDroid
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
-    // Google Generative AI
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    // Google Generative AI - Removed (Using REST API now)
+    // implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
     // OkHttp (for Groq Fallback)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

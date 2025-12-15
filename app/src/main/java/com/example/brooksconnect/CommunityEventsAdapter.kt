@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class CommunityEventsAdapter(private val events: List<CommunityEvent>) : RecyclerView.Adapter<CommunityEventsAdapter.ViewHolder>() {
+class CommunityEventsAdapter(private var events: MutableList<CommunityEvent>) : RecyclerView.Adapter<CommunityEventsAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val month: TextView = view.findViewById(R.id.event_month)
@@ -40,4 +40,10 @@ class CommunityEventsAdapter(private val events: List<CommunityEvent>) : Recycle
     }
 
     override fun getItemCount() = events.size
+
+    fun updateEvents(newEvents: List<CommunityEvent>) {
+        events.clear()
+        events.addAll(newEvents)
+        notifyDataSetChanged()
+    }
 }

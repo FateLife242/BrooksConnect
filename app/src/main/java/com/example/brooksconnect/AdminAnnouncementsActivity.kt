@@ -106,11 +106,31 @@ class AdminAnnouncementsActivity : AppCompatActivity() {
         val publicSafetyButton = view.findViewById<MaterialButton>(R.id.btn_public_safety)
         val titleInput = view.findViewById<TextInputEditText>(R.id.input_title)
         val contentInput = view.findViewById<TextInputEditText>(R.id.input_content)
+        val dateInput = view.findViewById<TextInputEditText>(R.id.input_date)
         val closeButton = view.findViewById<ImageView>(R.id.btn_close)
         val publishButton = view.findViewById<MaterialButton>(R.id.btn_publish)
 
         // Default category Notice selected
         noticeButton.isChecked = true
+
+        // Date Picker Logic
+        val calendar = java.util.Calendar.getInstance()
+        dateInput.setOnClickListener {
+            val datePickerDialog = android.app.DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    calendar.set(java.util.Calendar.YEAR, year)
+                    calendar.set(java.util.Calendar.MONTH, month)
+                    calendar.set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
+                    val format = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                    dateInput.setText(format.format(calendar.time))
+                },
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH),
+                calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+            datePickerDialog.show()
+        }
 
         closeButton.setOnClickListener { dialog.dismiss() }
         publishButton.setOnClickListener {
@@ -124,12 +144,16 @@ class AdminAnnouncementsActivity : AppCompatActivity() {
 
             val title = titleInput.text?.toString().orEmpty().trim()
             val description = contentInput.text?.toString().orEmpty().trim()
+            val selectedDate = dateInput.text?.toString().orEmpty().trim()
+
             if (title.isEmpty() && description.isEmpty()) {
                 dialog.dismiss()
                 return@setOnClickListener
             }
 
-            val date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
+            // Use the selected date, fallback to Today if empty
+            val date = if (selectedDate.isNotEmpty()) selectedDate else SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
+            
             val newAnnouncement = Announcement(
                 category = selectedCategory,
                 date = date,
@@ -138,6 +162,43 @@ class AdminAnnouncementsActivity : AppCompatActivity() {
             )
 
             AnnouncementsRepository.addAnnouncement(this, newAnnouncement)
+
+            // If it's an Event, also save to Firestore so it appears in the Calendar
+            if (selectedCategory == "Events") {
+                try {
+                    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                    val eventDate = sdf.parse(date)
+                    
+                    if (eventDate != null) {
+                        val calendar = java.util.Calendar.getInstance()
+                        calendar.time = eventDate
+                        
+                        val month = SimpleDateFormat("MMM", Locale.getDefault()).format(eventDate).uppercase()
+                        val day = SimpleDateFormat("dd", Locale.getDefault()).format(eventDate)
+                        
+                        val communityEvent = hashMapOf(
+                            "title" to newAnnouncement.title,
+                            "location" to "Barangay Hall", // Default location, or add a field later
+                            "month" to month,
+                            "day" to day,
+                            "timestamp" to eventDate.time
+                        )
+
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("events")
+                            .add(communityEvent)
+                            .addOnSuccessListener {
+                                android.widget.Toast.makeText(this, "Event added to Calendar!", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                android.widget.Toast.makeText(this, "Failed to sync to Calendar", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             adapter.notifyItemInserted(0)
             recyclerView.scrollToPosition(0)
             dialog.dismiss()

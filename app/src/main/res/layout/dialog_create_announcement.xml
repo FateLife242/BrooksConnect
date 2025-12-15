@@ -96,6 +96,25 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
+        android:text="Date"
+        android:textColor="@android:color/black" />
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/edit_text_background"
+        android:hint="Select date"
+        android:padding="12dp"
+        android:focusable="false"
+        android:clickable="true"
+        android:drawableEnd="@drawable/ic_calendar"
+        android:drawableTint="#155DFC"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Content"
         android:textColor="@android:color/black" />
 

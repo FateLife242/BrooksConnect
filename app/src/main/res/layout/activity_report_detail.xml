@@ -163,39 +163,41 @@
                     app:layout_constraintTop_toBottomOf="@+id/issue_description_label" />
 
                 <!-- Location Section -->
-                <ImageView
-                    android:id="@+id/location_icon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_marginTop="20dp"
-                    android:src="@drawable/ic_location"
-                    app:tint="#155dfc"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/issue_description" />
-
+                <!-- Location Section -->
                 <TextView
                     android:id="@+id/location_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="20dp"
                     android:text="Location"
                     android:textColor="@android:color/black"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    app:layout_constraintBaseline_toBaselineOf="@+id/location_icon"
-                    app:layout_constraintStart_toEndOf="@+id/location_icon" />
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/issue_description" />
+
+                <ImageView
+                    android:id="@+id/location_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginTop="8dp"
+                    android:src="@drawable/ic_location"
+                    app:tint="#155dfc"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/location_label" />
 
                 <TextView
                     android:id="@+id/location_text"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginStart="8dp"
                     android:text="Main Street, near Brookspoint Chapel"
                     android:textColor="@android:color/darker_gray"
                     android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/location_label" />
+                    app:layout_constraintBottom_toBottomOf="@+id/location_icon"
+                    app:layout_constraintStart_toEndOf="@+id/location_icon"
+                    app:layout_constraintTop_toTopOf="@+id/location_icon"
+                    app:layout_constraintEnd_toEndOf="parent" />
 
                 <TextView
                     android:id="@+id/view_on_map"
@@ -207,7 +209,7 @@
                     android:textSize="14sp"
                     android:clickable="true"
                     android:focusable="true"
-                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/location_text"
                     app:layout_constraintTop_toBottomOf="@+id/location_text" />
 
 

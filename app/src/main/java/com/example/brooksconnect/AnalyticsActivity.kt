@@ -8,9 +8,14 @@ import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.brooksconnect.R
-import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.Calendar
 import java.util.Locale
 
@@ -18,20 +23,15 @@ class AnalyticsActivity : AppCompatActivity() {
     
     // TODO: Replace with your actual API Key from https://aistudio.google.com/
     // It is recommended to put this in local.properties or BuildConfig for security
-    private val GEMINI_API_KEY = "AIzaSyDv7pG4Cw9Senb47djsqRAvx368bfAzqFM"
+    private val GEMINI_API_KEY = "AIzaSyDv6PK9tqsEkhJNu4EYKOMe1cJN96xJDww"
     
     private val db = FirebaseFirestore.getInstance()
-    private lateinit var generativeModel: GenerativeModel
+    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_analytics)
-        
-        // Initialize Gemini
-        generativeModel = GenerativeModel(
-            modelName = "gemini-pro",
-            apiKey = GEMINI_API_KEY
-        )
+
 
         val backArrow = findViewById<ImageView>(R.id.back_arrow)
         backArrow.setOnClickListener { finish() }
@@ -269,11 +269,64 @@ class AnalyticsActivity : AppCompatActivity() {
             return
         }
 
-        lifecycleScope.launch {
+        // Check Persistent Cache
+        val cacheKey = "insight_" + prompt.hashCode()
+        val sharedPrefs = getSharedPreferences("ai_insights_cache", MODE_PRIVATE)
+        val cachedInsight = sharedPrefs.getString(cacheKey, null)
+        
+        if (cachedInsight != null) {
+            textView.text = cachedInsight
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = generativeModel.generateContent(prompt)
-                response.text?.let { text ->
-                    textView.text = text
+                // BUILD JSON manually for REST API
+                val jsonBody = org.json.JSONObject().apply {
+                    put("contents", org.json.JSONArray().apply {
+                        put(org.json.JSONObject().apply {
+                            put("parts", org.json.JSONArray().apply {
+                                put(org.json.JSONObject().apply {
+                                    put("text", prompt)
+                                })
+                            })
+                        })
+                    })
+                }.toString()
+
+                val request = Request.Builder()
+                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$GEMINI_API_KEY")
+                    .addHeader("Content-Type", "application/json")
+                    .post(jsonBody.toRequestBody("application/json".toMediaTypeOrNull()))
+                    .build()
+
+                val response = client.newCall(request).execute()
+                
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string() ?: ""
+                    // Parse Gemini Response
+                    try {
+                        val jsonResponse = org.json.JSONObject(responseBody)
+                        val text = jsonResponse.getJSONArray("candidates")
+                            .getJSONObject(0)
+                            .getJSONObject("content")
+                            .getJSONArray("parts")
+                            .getJSONObject(0)
+                            .getString("text")
+                            .trim()
+
+                        withContext(Dispatchers.Main) {
+                            textView.text = text
+                            // Save to Cache
+                            sharedPrefs.edit().putString(cacheKey, text).apply()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                } else {
+                     // Log error
+                     val errorBody = response.body?.string() ?: ""
+                     // println("Analytics Gemini Error: $errorBody")
                 }
             } catch (e: Exception) {
                 // If AI fails (no internet, quota exceeded), we already have the fallback

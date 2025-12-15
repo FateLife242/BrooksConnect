@@ -27,14 +27,11 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.BlockThreshold
-import com.google.ai.client.generativeai.type.HarmCategory
-import com.google.ai.client.generativeai.type.SafetySetting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.LruCache
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class ReportIssueActivity : AppCompatActivity() {
@@ -187,22 +184,14 @@ class ReportIssueActivity : AppCompatActivity() {
     }
 
     // AI Components
-    private val GEMINI_API_KEY = "AIzaSyDv7pG4Cw9Senb47djsqRAvx368bfAzqFM" // Using same key as Analytics
-    private lateinit var generativeModel: GenerativeModel
+    private val GEMINI_API_KEY = "AIzaSyDv6PK9tqsEkhJNu4EYKOMe1cJN96xJDww"
     private val debounceHandler = Handler(Looper.getMainLooper())
     private var debounceRunnable: Runnable? = null
+    
+    // Cache for AI Analysis: Key = SHA-256 of text or just the text if short, Value = "Category|Priority|Action"
+    private val analysisCache = LruCache<String, String>(20)
 
     private fun setupSmartCategorization() {
-        // Init Gemini with Safety Settings
-        val harassmentSafety = SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.ONLY_HIGH)
-        val hateSpeechSafety = SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.ONLY_HIGH)
-
-        generativeModel = GenerativeModel(
-            modelName = "gemini-pro", // Reverting to stable Pro model
-            apiKey = GEMINI_API_KEY,
-            safetySettings = listOf(harassmentSafety, hateSpeechSafety)
-        )
-
         val descriptionInput = findViewById<EditText>(R.id.issue_description)
         // ... (rest same)
         val suggestionLayout = findViewById<LinearLayout>(R.id.ai_suggestion_layout)
@@ -284,8 +273,63 @@ class ReportIssueActivity : AppCompatActivity() {
                     If the input is gibberish (e.g. "safasf", "asdf"), random characters, or too short to be meaningful, return "Invalid".
                 """.trimIndent()
 
-                val response = generativeModel.generateContent(prompt)
-                val rawResponse = response.text?.trim() ?: "Other|Normal|Verify Report"
+                // Check Cache
+                val cacheKey = text.trim()
+                val cachedResult = analysisCache.get(cacheKey)
+                if (cachedResult != null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@ReportIssueActivity, "Analysis (Cached)", Toast.LENGTH_SHORT).show()
+                    }
+                    parseAiResponse(cachedResult, text)
+                    return@launch
+                }
+
+                // BUILD JSON manually for REST API
+                val jsonBody = org.json.JSONObject().apply {
+                    put("contents", org.json.JSONArray().apply {
+                        put(org.json.JSONObject().apply {
+                            put("parts", org.json.JSONArray().apply {
+                                put(org.json.JSONObject().apply {
+                                    put("text", prompt)
+                                })
+                            })
+                        })
+                    })
+                }.toString()
+
+                val request = okhttp3.Request.Builder()
+                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$GEMINI_API_KEY")
+                    .addHeader("Content-Type", "application/json")
+                    .post(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))
+                    .build()
+
+                val response = client.newCall(request).execute() // Use existing OkHttpClient
+                
+                if (!response.isSuccessful) {
+                     val errorBody = response.body?.string() ?: ""
+                     // Parse standard Google API error format: { "error": { "code": 400, "message": "..." } }
+                     try {
+                         val errorJson = org.json.JSONObject(errorBody)
+                         val errorMsg = errorJson.optJSONObject("error")?.optString("message") ?: errorBody
+                         throw Exception(errorMsg)
+                     } catch (e: Exception) {
+                         throw Exception("Error ${response.code}: $errorBody")
+                     }
+                }
+
+                val responseBody = response.body?.string() ?: ""
+                // Parse Gemini Response: { "candidates": [ { "content": { "parts": [ { "text": "..." } ] } } ] }
+                val jsonResponse = org.json.JSONObject(responseBody)
+                val rawResponse = jsonResponse.getJSONArray("candidates")
+                    .getJSONObject(0)
+                    .getJSONObject("content")
+                    .getJSONArray("parts")
+                    .getJSONObject(0)
+                    .getString("text")
+                    .trim()
+
+                // Save to Cache
+                analysisCache.put(cacheKey, rawResponse)
 
                 // DEBUG: Show Toast
                 withContext(Dispatchers.Main) {
@@ -295,13 +339,58 @@ class ReportIssueActivity : AppCompatActivity() {
                 parseAiResponse(rawResponse, text)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Gemini Failed, Try Groq
+                
+                // Show exact error for debugging
+                var errorMessage = e.message ?: e.toString()
+
+                // If 404/Not Found, try to fetch available models to show user
+                if (errorMessage.contains("404") || errorMessage.contains("not found", ignoreCase = true)) {
+                    try {
+                        val listRequest = okhttp3.Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY")
+                            .build()
+                        val listResponse = client.newCall(listRequest).execute()
+                        if (listResponse.isSuccessful) {
+                            val listBody = listResponse.body?.string() ?: ""
+                            val modelsJson = org.json.JSONObject(listBody)
+                            val modelsArr = modelsJson.optJSONArray("models")
+                            if (modelsArr != null) {
+                                val modelNames = StringBuilder("\n\nAvailable Models:\n")
+                                for (i in 0 until modelsArr.length()) {
+                                    val name = modelsArr.getJSONObject(i).optString("name")
+                                    modelNames.append("- ${name.replace("models/", "")}\n")
+                                }
+                                errorMessage += modelNames.toString()
+                            }
+                        } else {
+                            errorMessage += "\n\n(ListModels failed: ${listResponse.code})"
+                        }
+                    } catch (listEx: Exception) {
+                        errorMessage += "\n\n(Could not list models: ${listEx.message})"
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                   android.app.AlertDialog.Builder(this@ReportIssueActivity)
+                       .setTitle("Gemini API Error")
+                       .setMessage(errorMessage)
+                       .setPositiveButton("OK", null)
+                       .setNeutralButton("Copy") { _, _ ->
+                           val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                           val clip = android.content.ClipData.newPlainText("Error", errorMessage)
+                           clipboard.setPrimaryClip(clip)
+                           Toast.makeText(this@ReportIssueActivity, "Error copied to clipboard", Toast.LENGTH_SHORT).show()
+                       }
+                       .show()
+                }
+                
+                // Gemini failed - try Groq as fallback
                 callGroqAi(text)
             }
         }
     }
 
-    private val GROQ_API_KEY = "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"
+    private val GROQ_API_KEY = "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"
 
     private val client = okhttp3.OkHttpClient()
 
@@ -315,14 +404,15 @@ class ReportIssueActivity : AppCompatActivity() {
                 Return ONLY: Category|Priority|Action
             """.trimIndent()
 
-            `            val jsonBody = """
-`                {
-                    "model": "llama3-8b-8192",
-                    "messages": [
-                        {"role": "user", "content": "$prompt"}
-                    ]
-                }
-            """.trimIndent()
+            val jsonBody = org.json.JSONObject().apply {
+                put("model", "llama-3.3-70b-versatile")
+                put("messages", org.json.JSONArray().apply {
+                    put(org.json.JSONObject().apply {
+                        put("role", "user")
+                        put("content", prompt)
+                    })
+                })
+            }.toString()
 
             val request = okhttp3.Request.Builder()
                 .url("https://api.groq.com/openai/v1/chat/completions")
@@ -334,7 +424,16 @@ class ReportIssueActivity : AppCompatActivity() {
             val response = withContext(Dispatchers.IO) {
                 client.newCall(request).execute()
             }
-            if (!response.isSuccessful) throw Exception("Groq Error: ${response.code}")
+            if (!response.isSuccessful) {
+                if (response.code == 429) {
+                     withContext(Dispatchers.Main) {
+                        Toast.makeText(this@ReportIssueActivity, "Groq Quota Exceeded. Using local rules.", Toast.LENGTH_LONG).show()
+                    }
+                    performLocalFallback(text)
+                    return
+                }
+                throw Exception("Groq Error: ${response.code}")
+            }
 
             val responseBody = response.body?.string() ?: ""
             // Simple JSON parsing
@@ -349,6 +448,9 @@ class ReportIssueActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             e.printStackTrace()
+             // Verify if it was already handled (e.g. 429)
+            if (e.message?.contains("Groq Quota Exceeded") == true) return
+
             withContext(Dispatchers.Main) {
                 val errorMsg = e.message ?: e.toString()
                 Toast.makeText(this@ReportIssueActivity, "AI Error: $errorMsg", Toast.LENGTH_LONG).show()
