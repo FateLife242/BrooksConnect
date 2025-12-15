@@ -16,6 +16,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import android.content.Intent
 
+
 class RecordsActivity : AppCompatActivity() {
 
     private lateinit var announcementsRecyclerView: RecyclerView
