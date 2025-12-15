@@ -24,41 +24,36 @@ class ReportsAdapter(private var reports: List<Report>) : RecyclerView.Adapter<R
         holder.location.text = report.location
         holder.reporter.text = report.reporter
         holder.filedDate.text = report.filedDate
-        holder.status.text = report.status
 
-        // AI Insights
-        val aiLayout = holder.itemView.findViewById<android.widget.LinearLayout>(R.id.ai_insights_layout)
-        val aiClassText = holder.itemView.findViewById<TextView>(R.id.ai_classification_label)
-        val aiPriorityText = holder.itemView.findViewById<TextView>(R.id.ai_priority_label)
-        val aiActionChip = holder.itemView.findViewById<TextView>(R.id.ai_action_chip)
-
+        // AI Insights Logic
         val hasAiData = report.aiPriority.isNotEmpty() || report.aiClassification.isNotEmpty() || report.aiAction.isNotEmpty()
 
         if (hasAiData) {
-            aiLayout.visibility = View.VISIBLE
+            holder.aiLayout.visibility = View.VISIBLE
             
             // Classification & Priority
             if (report.aiClassification.isNotEmpty() || report.aiPriority.isNotEmpty()) {
-                aiClassText.visibility = View.VISIBLE
-                aiPriorityText.visibility = View.VISIBLE
-                aiClassText.text = "AI Classification: ${report.aiClassification.ifEmpty { "N/A" }}"
-                aiPriorityText.text = "Suggested Priority: ${report.aiPriority.ifEmpty { "Normal" }}"
+                holder.aiClassText.visibility = View.VISIBLE
+                holder.aiPriorityText.visibility = View.VISIBLE
+                holder.aiClassText.text = "AI Classification: ${report.aiClassification.ifEmpty { "N/A" }}"
+                holder.aiPriorityText.text = "Suggested Priority: ${report.aiPriority.ifEmpty { "Normal" }}"
             } else {
-                aiClassText.visibility = View.GONE
-                aiPriorityText.visibility = View.GONE
+                holder.aiClassText.visibility = View.GONE
+                holder.aiPriorityText.visibility = View.GONE
             }
 
             // Action Chip
             if (report.aiAction.isNotEmpty()) {
-                aiActionChip.visibility = View.VISIBLE
-                aiActionChip.text = report.aiAction
+                holder.aiActionChip.visibility = View.VISIBLE
+                holder.aiActionChip.text = report.aiAction
             } else {
-                aiActionChip.visibility = View.GONE
+                holder.aiActionChip.visibility = View.GONE
             }
         } else {
-            aiLayout.visibility = View.GONE
+            holder.aiLayout.visibility = View.GONE
         }
 
+        // Status Chip Styling
         when (report.status.lowercase()) {
             "in-progress" -> {
                 holder.status.setBackgroundResource(R.drawable.in_progress_chip_background)
@@ -108,5 +103,11 @@ class ReportsAdapter(private var reports: List<Report>) : RecyclerView.Adapter<R
         val reporter: TextView = itemView.findViewById(R.id.report_reporter)
         val filedDate: TextView = itemView.findViewById(R.id.report_filed_date)
         val status: TextView = itemView.findViewById(R.id.report_status)
+        
+        // AI Insights Views
+        val aiLayout: View = itemView.findViewById(R.id.ai_insights_layout)
+        val aiClassText: TextView = itemView.findViewById(R.id.ai_classification_label)
+        val aiPriorityText: TextView = itemView.findViewById(R.id.ai_priority_label)
+        val aiActionChip: TextView = itemView.findViewById(R.id.ai_action_chip)
     }
 }

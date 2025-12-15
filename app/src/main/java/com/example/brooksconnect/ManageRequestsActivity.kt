@@ -2,7 +2,10 @@ package com.example.brooksconnect
 
 import android.os.Bundle
 import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
@@ -17,10 +20,20 @@ class ManageRequestsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_manage_requests)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.header)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, systemBars.top + 16.dpToPx(this), v.paddingRight, v.paddingBottom)
+            insets
+        }
 
         val backArrow = findViewById<ImageView>(R.id.back_arrow)
         backArrow.setOnClickListener {
+            val intent = android.content.Intent(this, AdminActivity::class.java)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
             finish()
         }
 
@@ -108,5 +121,9 @@ class ManageRequestsActivity : AppCompatActivity() {
             .addOnFailureListener {
                 loadingTextView.text = "Error loading requests."
             }
+    }
+
+    private fun Int.dpToPx(context: android.content.Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 }

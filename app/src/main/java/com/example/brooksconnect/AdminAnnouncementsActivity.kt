@@ -2,7 +2,10 @@ package com.example.brooksconnect
 
 import android.os.Bundle
 import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
@@ -21,10 +24,24 @@ class AdminAnnouncementsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_admin_announcements)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.header)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, systemBars.top + 16.dpToPx(this), v.paddingRight, v.paddingBottom)
+            insets
+        }
 
         recyclerView = findViewById(R.id.admin_announcements_recyclerview)
         val fab = findViewById<FloatingActionButton>(R.id.fab_create_announcement)
+        
+        findViewById<ImageView>(R.id.back_arrow).setOnClickListener {
+            val intent = android.content.Intent(this, AdminActivity::class.java)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+            finish()
+        }
 
         val announcements = AnnouncementsRepository.getAnnouncements(this)
         adapter = AdminAnnouncementsAdapter(
@@ -211,5 +228,9 @@ class AdminAnnouncementsActivity : AppCompatActivity() {
         AnnouncementsRepository.removeAnnouncement(this, position)
         adapter.notifyItemRemoved(position)
         adapter.notifyItemRangeChanged(position, adapter.itemCount)
+    }
+
+    private fun Int.dpToPx(context: android.content.Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 }

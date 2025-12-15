@@ -47,6 +47,10 @@ class LocationPickerActivity : AppCompatActivity() {
 
         map = findViewById(R.id.map)
         btnConfirm = findViewById(R.id.btn_confirm_location)
+        
+        findViewById<android.view.View>(R.id.btn_back).setOnClickListener {
+            finish()
+        }
 
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)

@@ -6,7 +6,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -17,10 +20,18 @@ class StaffLoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_staff_login)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+
+        // Handle Window Insets
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.header)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, systemBars.top + 16.dpToPx(this), v.paddingRight, v.paddingBottom)
+            insets
+        }
 
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
@@ -29,6 +40,9 @@ class StaffLoginActivity : AppCompatActivity() {
 
         // Handle back button
         backArrow.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
             finish()
         }
 
@@ -45,6 +59,10 @@ class StaffLoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter email and password.", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun Int.dpToPx(context: android.content.Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 
     private fun signInAndCheckRole(email: String, password: String, btnLogin: Button) {

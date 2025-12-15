@@ -19,6 +19,12 @@ class AnnouncementsActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.announcements_recyclerview)
         chipGroup = findViewById(R.id.chip_group)
+        
+        findViewById<android.widget.ImageView>(R.id.back_arrow).setOnClickListener {
+            val intent = android.content.Intent(this, MainActivity::class.java)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+        }
 
         val announcements = AnnouncementsRepository.getAnnouncements(this)
         adapter = AnnouncementsAdapter(announcements)

@@ -18,12 +18,23 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
+            android:id="@+id/back_arrow"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@android:color/black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageView
             android:id="@+id/app_logo"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:layout_marginStart="16dp"
             android:src="@drawable/trust_wallet_token"
             app:tint="#155dfc"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/back_arrow"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
@@ -45,15 +56,6 @@
             android:textColor="@android:color/darker_gray"
             app:layout_constraintStart_toStartOf="@+id/app_name"
             app:layout_constraintTop_toBottomOf="@+id/app_name" />
-
-        <ImageView
-            android:id="@+id/back_arrow"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_arrow_back"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
