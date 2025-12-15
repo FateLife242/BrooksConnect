@@ -1,13 +1,15 @@
 package com.example.brooksconnect
 
 import android.os.Bundle
+import android.content.Intent
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.brooksconnect.R
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,11 +32,22 @@ class AnalyticsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_analytics)
 
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.header)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, systemBars.top + 16.dpToPx(this), v.paddingRight, v.paddingBottom)
+            insets
+        }
 
         val backArrow = findViewById<ImageView>(R.id.back_arrow)
-        backArrow.setOnClickListener { finish() }
+        backArrow.setOnClickListener {
+            val intent = Intent(this, AdminActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+            finish()
+        }
 
         loadAnalyticsData()
     }
@@ -356,5 +369,9 @@ class AnalyticsActivity : AppCompatActivity() {
             "security concern" -> "Increase police visibility or establish neighborhood watch programs."
             else -> "Investigate the root causes and develop targeted solutions."
         }
+    }
+
+    private fun Int.dpToPx(context: android.content.Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 }
