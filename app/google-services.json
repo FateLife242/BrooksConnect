@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "928938153432",
+    "project_id": "brooksconnect-9144a",
+    "storage_bucket": "brooksconnect-9144a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:928938153432:android:40c5b90841b25139094ead",
+        "android_client_info": {
+          "package_name": "com.example.brooksconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPUZyGsRxkNnHoemp4aVrwuqFX6Bg7kNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

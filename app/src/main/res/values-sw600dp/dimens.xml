@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions for 7" tablets and larger (sw600dp) -->
+<resources>
+    <!-- Text sizes - slightly larger for tablets -->
+    <dimen name="text_size_small">14sp</dimen>
+    <dimen name="text_size_body">16sp</dimen>
+    <dimen name="text_size_medium">18sp</dimen>
+    <dimen name="text_size_large">20sp</dimen>
+    <dimen name="text_size_title">24sp</dimen>
+    <dimen name="text_size_header">28sp</dimen>
+
+    <!-- Margins and Padding - increased for tablets -->
+    <dimen name="margin_small">12dp</dimen>
+    <dimen name="margin_medium">24dp</dimen>
+    <dimen name="margin_large">32dp</dimen>
+    <dimen name="padding_small">12dp</dimen>
+    <dimen name="padding_medium">24dp</dimen>
+    <dimen name="padding_large">32dp</dimen>
+
+    <!-- Icon sizes - larger for tablets -->
+    <dimen name="icon_size_small">32dp</dimen>
+    <dimen name="icon_size_medium">48dp</dimen>
+    <dimen name="icon_size_large">64dp</dimen>
+
+    <!-- Card dimensions -->
+    <dimen name="card_corner_radius">20dp</dimen>
+    <dimen name="card_elevation">6dp</dimen>
+
+    <!-- Bottom navigation height -->
+    <dimen name="bottom_nav_height">64dp</dimen>
+    <dimen name="bottom_nav_padding">96dp</dimen>
+
+    <!-- Profile/Avatar sizes -->
+    <dimen name="avatar_size_small">32dp</dimen>
+    <dimen name="avatar_size_medium">56dp</dimen>
+    <dimen name="avatar_size_large">80dp</dimen>
+</resources>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BrooksConnect">
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true" />
+        <activity
+            android:name=".AnnouncementsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AnnouncementDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".StaffLoginActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ManageRequestsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ManageReportsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminAnnouncementsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AnalyticsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RecordsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RequestDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ReportDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ServiceRequestsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TrackRequestsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ReportIssueActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TrackReportsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EventCalendarActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EventDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EmergencyAssistanceActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RequestFormActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LocationPickerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
+    </application>
+
+</manifest>

@@ -1,0 +1,624 @@
+[33mcommit ea5d269ac9f25e200e178864c5cadb15d71371bb[m
+Author: Kai <fatelife2411@gmail.com>
+Date:   Mon Dec 15 14:35:12 2025 +0800
+
+    first commit
+
+[1mdiff --git a/app/src/main/java/com/example/brooksconnect/ReportIssueActivity.kt b/app/src/main/java/com/example/brooksconnect/ReportIssueActivity.kt[m
+[1mnew file mode 100644[m
+[1mindex 0000000..1fd8505[m
+[1m--- /dev/null[m
+[1m+++ b/app/src/main/java/com/example/brooksconnect/ReportIssueActivity.kt[m
+[36m@@ -0,0 +1,612 @@[m
+[32m+[m[32mpackage com.example.brooksconnect[m
+[32m+[m
+[32m+[m[32mimport android.content.Intent[m
+[32m+[m[32mimport android.graphics.Color[m
+[32m+[m[32mimport android.net.Uri[m
+[32m+[m[32mimport android.os.Bundle[m
+[32m+[m[32mimport android.view.View[m
+[32m+[m[32mimport android.widget.EditText[m
+[32m+[m[32mimport android.widget.ImageView[m
+[32m+[m[32mimport android.widget.LinearLayout[m
+[32m+[m[32mimport android.widget.TextView[m
+[32m+[m[32mimport android.widget.Toast[m
+[32m+[m[32mimport androidx.activity.enableEdgeToEdge[m
+[32m+[m[32mimport androidx.activity.result.contract.ActivityResultContracts[m
+[32m+[m[32mimport androidx.appcompat.app.AppCompatActivity[m
+[32m+[m[32mimport androidx.core.content.ContextCompat[m
+[32m+[m[32mimport androidx.core.view.ViewCompat[m
+[32m+[m[32mimport androidx.core.view.WindowInsetsCompat[m
+[32m+[m[32mimport com.cloudinary.android.MediaManager[m
+[32m+[m[32mimport com.cloudinary.android.callback.ErrorInfo[m
+[32m+[m[32mimport com.cloudinary.android.callback.UploadCallback[m
+[32m+[m[32mimport com.google.android.material.button.MaterialButton[m
+[32m+[m[32mimport com.google.firebase.auth.FirebaseAuth[m
+[32m+[m[32mimport com.google.firebase.firestore.FirebaseFirestore[m
+[32m+[m[32mimport java.util.UUID[m
+[32m+[m[32mimport android.os.Handler[m
+[32m+[m[32mimport android.os.Looper[m
+[32m+[m[32mimport android.text.Editable[m
+[32m+[m[32mimport android.text.TextWatcher[m
+[32m+[m[32mimport com.google.ai.client.generativeai.GenerativeModel[m
+[32m+[m[32mimport com.google.ai.client.generativeai.type.BlockThreshold[m
+[32m+[m[32mimport com.google.ai.client.generativeai.type.HarmCategory[m
+[32m+[m[32mimport com.google.ai.client.generativeai.type.SafetySetting[m
+[32m+[m[32mimport kotlinx.coroutines.CoroutineScope[m
+[32m+[m[32mimport kotlinx.coroutines.Dispatchers[m
+[32m+[m[32mimport kotlinx.coroutines.launch[m
+[32m+[m[32mimport kotlinx.coroutines.withContext[m
+[32m+[m[32mimport okhttp3.MediaType.Companion.toMediaTypeOrNull[m
+[32m+[m
+[32m+[m[32mclass ReportIssueActivity : AppCompatActivity() {[m
+[32m+[m
+[32m+[m[32m    private lateinit var categories: List<LinearLayout>[m
+[32m+[m[32m    private var selectedCategoryIndex: Int = -1[m
+[32m+[m[32m    private val categoryNames = listOf("Road Damage", "Waste Management", "Street Light", "Drainage", "Noise Complaint", "Other")[m
+[32m+[m[32m    private var currentAiPriority: String = "" // Store AI priority suggestion[m
+[32m+[m[32m    private var currentAiClassification: String = "" // Store AI classification suggestion[m
+[32m+[m[32m    private var currentAiAction: String = "" // Store AI action suggestion[m
+[32m+[m[41m    [m
+[32m+[m[32m    private var selectedImageUri: Uri? = null[m
+[32m+[m[32m    private lateinit var auth: FirebaseAuth[m
+[32m+[m[32m    private lateinit var db: FirebaseFirestore[m
+[32m+[m[41m    [m
+[32m+[m[32m    // File Picker[m
+[32m+[m[32m    private val pickFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->[m
+[32m+[m[32m        if (uri != null) {[m
+[32m+[m[32m            selectedImageUri = uri[m
+[32m+[m[41m            [m
+[32m+[m[32m            // Persist permission[m
+[32m+[m[32m            val takeFlags: Int = intent.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)[m
+[32m+[m[32m            try {[m
+[32m+[m[32m                contentResolver.takePersistableUriPermission(uri, takeFlags)[m
+[32m+[m[32m            } catch (e: Exception) {[m
+[32m+[m[32m                // Ignore[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            // Update UI[m
+[32m+[m[32m            val iconView = findViewById<ImageView>(R.id.upload_preview_icon)[m
+[32m+[m[32m            iconView?.let {[m
+[32m+[m[32m                it.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT[m
+[32m+[m[32m                it.layoutParams.height = 400[m[41m [m
+[32m+[m[32m                it.setPadding(0, 0, 0, 0)[m
+[32m+[m[41m                [m
+[32m+[m[32m                val type = contentResolver.getType(uri)[m
+[32m+[m[32m                if (type?.startsWith("image/") == true) {[m
+[32m+[m[32m                    it.setImageURI(uri)[m
+[32m+[m[32m                    it.scaleType = ImageView.ScaleType.CENTER_CROP[m
+[32m+[m[32m                } else {[m
+[32m+[m[32m                    it.setImageResource(android.R.drawable.ic_menu_sort_by_size)[m
+[32m+[m[32m                    it.scaleType = ImageView.ScaleType.CENTER_INSIDE[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Location Picker Result[m
+[32m+[m[32m    private val startLocationPicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->[m
+[32m+[m[32m        if (result.resultCode == RESULT_OK) {[m
+[32m+[m[32m            val data = result.data[m
+[32m+[m[32m            val locationString = data?.getStringExtra("location_string")[m
+[32m+[m[32m            val lat = data?.getDoubleExtra("lat", 0.0)[m
+[32m+[m[32m            val lon = data?.getDoubleExtra("lon", 0.0)[m
+[32m+[m[41m            [m
+[32m+[m[32m            if (locationString != null) {[m
+[32m+[m[32m                // Save format: "Address (Lat, Lon)" so we can parse it later[m
+[32m+[m[32m                val fullLocation = "$locationString ($lat, $lon)"[m
+[32m+[m[32m                findViewById<EditText>(R.id.issue_location).setText(fullLocation)[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private var currentUserName: String = "Anonymous"[m
+[32m+[m
+[32m+[m[32m    override fun onCreate(savedInstanceState: Bundle?) {[m
+[32m+[m[32m        super.onCreate(savedInstanceState)[m
+[32m+[m[32m        enableEdgeToEdge()[m
+[32m+[m[32m        setContentView(R.layout.activity_report_issue)[m
+[32m+[m[41m        [m
+[32m+[m[32m        auth = FirebaseAuth.getInstance()[m
+[32m+[m[32m        db = FirebaseFirestore.getInstance()[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Fetch user name[m
+[32m+[m[32m        val user = auth.currentUser[m
+[32m+[m[32m        if (user != null) {[m
+[32m+[m[32m            db.collection("users").document(user.uid).get().addOnSuccessListener { document ->[m
+[32m+[m[32m                if (document != null && document.exists()) {[m
+[32m+[m[32m                     currentUserName = document.getString("name") ?: user.displayName ?: "Anonymous"[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        // ... rest of onCreate ...[m
+[32m+[m[32m        // Initialize Cloudinary[m
+[32m+[m[32m        try {[m
+[32m+[m[32m            val config = HashMap<String, String>()[m
+[32m+[m[32m            config["cloud_name"] = "dpj3oe5kg"[m[41m [m
+[32m+[m[32m            config["api_key"] = "434136765863741"[m
+[32m+[m[32m            config["api_secret"] = "Z93-mkZLP5jlRAKEfmnipxA-vfc"[m
+[32m+[m[32m            MediaManager.init(this, config)[m
+[32m+[m[32m        } catch (e: Exception) {[m
+[32m+[m[32m            // Already initialized[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.header)) { v, insets ->[m
+[32m+[m[32m            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())[m
+[32m+[m[32m            v.setPadding(systemBars.left, systemBars.top, systemBars.right, v.paddingBottom)[m
+[32m+[m[32m            insets[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        findViewById<ImageView>(R.id.back_button).setOnClickListener {[m
+[32m+[m[32m            finish()[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        // Categories[m
+[32m+[m[32m        val catRoad = findViewById<LinearLayout>(R.id.cat_road)[m
+[32m+[m[32m        val catWaste = findViewById<LinearLayout>(R.id.cat_waste)[m
+[32m+[m[32m        val catLight = findViewById<LinearLayout>(R.id.cat_light)[m
+[32m+[m[32m        val catDrainage = findViewById<LinearLayout>(R.id.cat_drainage)[m
+[32m+[m[32m        val catNoise = findViewById<LinearLayout>(R.id.cat_noise)[m
+[32m+[m[32m        val catOther = findViewById<LinearLayout>(R.id.cat_other)[m
+[32m+[m
+[32m+[m[32m        categories = listOf(catRoad, catWaste, catLight, catDrainage, catNoise, catOther)[m
+[32m+[m
+[32m+[m[32m        categories.forEachIndexed { index, layout ->[m
+[32m+[m[32m            layout.setOnClickListener {[m
+[32m+[m[32m                selectCategory(index)[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        findViewById<LinearLayout>(R.id.add_photo_area).setOnClickListener {[m
+[32m+[m[32m            pickFileLauncher.launch(arrayOf("image/*", "application/pdf"))[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m
+[32m+[m[32m        // Location Click Listener - Handle drawable start click[m
+[32m+[m[32m        findViewById<EditText>(R.id.issue_location).setOnTouchListener { v, event ->[m
+[32m+[m[32m            if (event.action == android.view.MotionEvent.ACTION_UP) {[m
+[32m+[m[32m                val drawableStart = (v as EditText).compoundDrawablesRelative[0][m
+[32m+[m[32m                if (drawableStart != null) {[m
+[32m+[m[32m                    // Check if touch is within the bounds of the drawable start[m
+[32m+[m[32m                    // Use event.x which is relative to the view[m
+[32m+[m[32m                    val bounds = drawableStart.bounds.width() + v.paddingStart + 50[m[41m [m
+[32m+[m[32m                    if (event.x <= bounds) {[m
+[32m+[m[32m                        startLocationPicker.launch(Intent(this, LocationPickerActivity::class.java))[m
+[32m+[m[32m                        return@setOnTouchListener true[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m[32m            false[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        findViewById<MaterialButton>(R.id.submit_button).setOnClickListener {[m
+[32m+[m[32m            submitReport()[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        // --- AI Smart Categorization Setup ---[m
+[32m+[m[32m        setupSmartCategorization()[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // AI Components[m
+[32m+[m[32m    private val GEMINI_API_KEY = "AIzaSyDv7pG4Cw9Senb47djsqRAvx368bfAzqFM" // Using same key as Analytics[m
+[32m+[m[32m    private lateinit var generativeModel: GenerativeModel[m
+[32m+[m[32m    private val debounceHandler = Handler(Looper.getMainLooper())[m
+[32m+[m[32m    private var debounceRunnable: Runnable? = null[m
+[32m+[m[41m    [m
+[32m+[m[32m    private fun setupSmartCategorization() {[m
+[32m+[m[32m        // Init Gemini with Safety Settings[m
+[32m+[m[32m        val harassmentSafety = SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.ONLY_HIGH)[m
+[32m+[m[32m        val hateSpeechSafety = SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.ONLY_HIGH)[m
+[32m+[m[41m        [m
+[32m+[m[32m        generativeModel = GenerativeModel([m
+[32m+[m[32m            modelName = "gemini-pro", // Reverting to stable Pro model[m
+[32m+[m[32m            apiKey = GEMINI_API_KEY,[m
+[32m+[m[32m            safetySettings = listOf(harassmentSafety, hateSpeechSafety)[m
+[32m+[m[32m        )[m
+[32m+[m[41m        [m
+[32m+[m[32m        val descriptionInput = findViewById<EditText>(R.id.issue_description)[m
+[32m+[m[32m        // ... (rest same)[m
+[32m+[m[32m        val suggestionLayout = findViewById<LinearLayout>(R.id.ai_suggestion_layout)[m
+[32m+[m[32m        val applyButton = findViewById<TextView>(R.id.apply_suggestion_button)[m
+[32m+[m[32m        // ...[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Text Watcher with Debounce[m[41m [m
+[32m+[m[32m        descriptionInput.addTextChangedListener(object : TextWatcher {[m
+[32m+[m[32m             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}[m
+[32m+[m[32m             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {[m
+[32m+[m[32m                 suggestionLayout.visibility = View.GONE[m
+[32m+[m[32m                 debounceRunnable?.let { debounceHandler.removeCallbacks(it) }[m
+[32m+[m[32m             }[m
+[32m+[m[32m             override fun afterTextChanged(s: Editable?) {[m
+[32m+[m[32m                 val text = s?.toString()?.trim() ?: ""[m
+[32m+[m[32m                 if (text.length > 5) {[m
+[32m+[m[32m                     debounceRunnable = Runnable { analyzeDescription(text) }[m
+[32m+[m[32m                     debounceHandler.postDelayed(debounceRunnable!!, 1500)[m
+[32m+[m[32m                 }[m
+[32m+[m[32m             }[m
+[32m+[m[32m        })[m
+[32m+[m[41m        [m
+[32m+[m[32m        applyButton.setOnClickListener {[m
+[32m+[m[32m             // ... (same apply logic)[m
+[32m+[m[32m            val suggestedCategory = findViewById<TextView>(R.id.suggested_category_text).text.toString()[m
+[32m+[m[32m            val index = categoryNames.indexOf(suggestedCategory)[m
+[32m+[m[32m            if (index != -1) {[m
+[32m+[m[32m                selectCategory(index)[m
+[32m+[m[32m                suggestionLayout.visibility = View.GONE[m
+[32m+[m[32m                Toast.makeText(this, "Category applied: $suggestedCategory", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    private fun analyzeDescription(text: String) {[m
+[32m+[m[32m        CoroutineScope(Dispatchers.IO).launch {[m
+[32m+[m[32m            try {[m
+[32m+[m[32m                // Client-side Heuristics for Invalid Input[m
+[32m+[m[32m                val trimmed = text.trim()[m
+[32m+[m[32m                val isGibberish = when {[m
+[32m+[m[32m                    trimmed.length > 20 && !trimmed.contains(" ") -> true // Very long single word (likely mash)[m
+[32m+[m[32m                    trimmed.all { !it.isLetterOrDigit() } -> true // All symbols[m
+[32m+[m[32m                    trimmed.length < 3 -> false // Very short checks[m
+[32m+[m[32m                    else -> false[m
+[32m+[m[32m                }[m
+[32m+[m[41m                [m
+[32m+[m[32m                if (isGibberish) {[m
+[32m+[m[32m                    withContext(Dispatchers.Main) {[m
+[32m+[m[32m                        val suggestionLayout = findViewById<LinearLayout>(R.id.ai_suggestion_layout)[m
+[32m+[m[32m                        val suggestionText = findViewById<TextView>(R.id.suggested_category_text)[m
+[32m+[m[32m                        val applyButton = findViewById<TextView>(R.id.apply_suggestion_button)[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        suggestionText.text = "Please describe clearly"[m
+[32m+[m[32m                        suggestionText.setTextColor(Color.RED)[m
+[32m+[m[32m                        applyButton.visibility = View.GONE[m
+[32m+[m[32m                        suggestionLayout.visibility = View.VISIBLE[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                    return@launch[m
+[32m+[m[32m                }[m
+[32m+[m
+[32m+[m[32m                val prompt = """[m
+[32m+[m[32m                    Analyze this issue description: "$text"[m
+[32m+[m[32m                    The text may be in English, Filipino (Tagalog), or Taglish.[m
+[32m+[m[32m                    Classify it into exactly one of these (English) categories:[m[41m [m
+[32m+[m[32m                    ${categoryNames.joinToString(", ")}[m
+[32m+[m[41m                    [m
+[32m+[m[32m                    Also, suggest a priority level based on urgency. STRICTLY choose from: Low, Medium, or High.[m
+[32m+[m[32m                    - "High": Safety threats, violence (fights), fire, accidents, blocked access, or severe damage.[m
+[32m+[m[32m                    - "Medium": Significant nuisance, waste accumulation, broken lights, functionality issues.[m
+[32m+[m[32m                    - "Low": Minor cosmetic issues, non-urgent noise, small debris.[m
+[32m+[m[41m                    [m
+[32m+[m[32m                    Finally, suggest a short 2-3 word Action for staff, such as:[m
+[32m+[m[32m                    "Maintenance Required", "Cleanup Needed", "Inspection Needed", "Repair Needed", "No Action", "Verify Report", "Call Police", "Call Ambulance".[m
+[32m+[m[41m                    [m
+[32m+[m[32m                    Return ONLY the category name, priority, and action separated by a pipe (|).[m
+[32m+[m[32m                    Example: "Road Damage|High|Repair Needed" or "Waste Management|Medium|Cleanup Needed".[m
+[32m+[m[41m                    [m
+[32m+[m[32m                    If the input describes a valid issue but doesn't fit a category, return "Other|Medium|Inspection Needed".[m
+[32m+[m[32m                    If the input is gibberish (e.g. "safasf", "asdf"), random characters, or too short to be meaningful, return "Invalid".[m
+[32m+[m[32m                """.trimIndent()[m
+[32m+[m[41m                [m
+[32m+[m[32m                val response = generativeModel.generateContent(prompt)[m
+[32m+[m[32m                val rawResponse = response.text?.trim() ?: "Other|Normal|Verify Report"[m
+[32m+[m[41m                [m
+[32m+[m[32m                // DEBUG: Show Toast[m
+[32m+[m[32m                withContext(Dispatchers.Main) {[m
+[32m+[m[32m                   Toast.makeText(this@ReportIssueActivity, "AI Online: Analysis Complete", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m                }[m
+[32m+[m
+[32m+[m[32m                parseAiResponse(rawResponse, text)[m
+[32m+[m[32m            } catch (e: Exception) {[m
+[32m+[m[32m                e.printStackTrace()[m
+[32m+[m[32m                // Gemini Failed, Try Groq[m
+[32m+[m[32m                callGroqAi(text)[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private val GROQ_API_KEY = "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"[m
+[32m+[m[32m    private val client = okhttp3.OkHttpClient()[m
+[32m+[m
+[32m+[m[32m    private suspend fun callGroqAi(text: String) {[m
+[32m+[m[32m        try {[m
+[32m+[m[32m            val prompt = """[m
+[32m+[m[32m                Analyze this issue description: "$text"[m
+[32m+[m[32m                Classify into one of: ${categoryNames.joinToString(", ")}.[m
+[32m+[m[32m                Suggest Priority: Low, Medium, High.[m
+[32m+[m[32m                Suggest Action (2-3 words).[m
+[32m+[m[32m                Return ONLY: Category|Priority|Action[m
+[32m+[m[32m            """.trimIndent()[m
+[32m+[m
+[32m+[m[32m            val jsonBody = """[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    "model": "llama3-8b-8192",[m
+[32m+[m[32m                    "messages": [[m
+[32m+[m[32m                        {"role": "user", "content": "$prompt"}[m
+[32m+[m[32m                    ][m
+[32m+[m[32m                }[m
+[32m+[m[32m            """.trimIndent()[m
+[32m+[m
+[32m+[m[32m            val request = okhttp3.Request.Builder()[m
+[32m+[m[32m                .url("https://api.groq.com/openai/v1/chat/completions")[m
+[32m+[m[32m                .addHeader("Authorization", "Bearer $GROQ_API_KEY")[m
+[32m+[m[32m                .addHeader("Content-Type", "application/json")[m
+[32m+[m[32m                .post(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody))[m
+[32m+[m[32m                .build()[m
+[32m+[m
+[32m+[m[32m            val response = withContext(Dispatchers.IO) {[m
+[32m+[m[32m                client.newCall(request).execute()[m
+[32m+[m[32m            }[m
+[32m+[m[32m            if (!response.isSuccessful) throw Exception("Groq Error: ${response.code}")[m
+[32m+[m
+[32m+[m[32m            val responseBody = response.body?.string() ?: ""[m
+[32m+[m[32m            // Simple JSON parsing[m
+[32m+[m[32m            val content = responseBody.substringAfter("\"content\": \"").substringBefore("\"")[m
+[32m+[m[32m                .replace("\\n", "").replace("\\", "")[m[41m [m
+[32m+[m
+[32m+[m[32m            withContext(Dispatchers.Main) {[m
+[32m+[m[32m               Toast.makeText(this@ReportIssueActivity, "AI Online: Groq (Fallback)", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            parseAiResponse(content, text)[m
+[32m+[m
+[32m+[m[32m        } catch (e: Exception) {[m
+[32m+[m[32m            e.printStackTrace()[m
+[32m+[m[32m            withContext(Dispatchers.Main) {[m
+[32m+[m[32m               val errorMsg = e.message ?: e.toString()[m
+[32m+[m[32m               Toast.makeText(this@ReportIssueActivity, "AI Error: $errorMsg", Toast.LENGTH_LONG).show()[m
+[32m+[m[32m            }[m
+[32m+[m[32m            performLocalFallback(text)[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private suspend fun parseAiResponse(rawResponse: String, originalText: String) {[m
+[32m+[m[32m        // Parse "Category|Priority|Action"[m
+[32m+[m[32m        val parts = rawResponse.split("|")[m
+[32m+[m[32m        var suggestedCategory = parts.getOrElse(0) { "Other" }.trim()[m
+[32m+[m[32m        val suggestedPriority = parts.getOrElse(1) { "Normal" }.trim()[m
+[32m+[m[32m        var suggestedAction = parts.getOrElse(2) { "Verify Report" }.trim()[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Store priority and action[m
+[32m+[m[32m        currentAiPriority = suggestedPriority[m
+[32m+[m[32m        currentAiAction = suggestedAction[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Normalization fixes[m
+[32m+[m[32m        if (suggestedCategory.equals("Road Issue", ignoreCase = true)) suggestedCategory = "Road Damage"[m
+[32m+[m
+[32m+[m[32m        // Logic: If AI returns "Other", check if Fallback has a better idea[m
+[32m+[m[32m        if (suggestedCategory.equals("Other", ignoreCase = true)) {[m
+[32m+[m[32m            val fallbackCategory = getFallbackCategory(originalText)[m
+[32m+[m[32m            if (fallbackCategory != "Other") {[m
+[32m+[m[32m                suggestedCategory = fallbackCategory[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        if (categoryNames.any { it.equals(suggestedCategory, ignoreCase = true) }) {[m
+[32m+[m[32m            withContext(Dispatchers.Main) {[m
+[32m+[m[32m                // Update UI[m
+[32m+[m[32m                val suggestionText = findViewById<TextView>(R.id.suggested_category_text)[m
+[32m+[m[32m                val applyButton = findViewById<TextView>(R.id.apply_suggestion_button)[m
+[32m+[m[32m                suggestionText.setTextColor(ContextCompat.getColor(this@ReportIssueActivity, R.color.purple_500))[m[41m [m
+[32m+[m[32m                applyButton.visibility = View.VISIBLE[m
+[32m+[m[32m                updateSuggestionUI(suggestedCategory)[m
+[32m+[m[32m            }[m
+[32m+[m[32m        } else {[m
+[32m+[m[32m            performLocalFallback(originalText)[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // Fallback logic when AI is offline or fails[m
+[32m+[m[32m    private fun performLocalFallback(text: String) {[m
+[32m+[m[32m        val category = getFallbackCategory(text)[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Heuristic Priority & Action[m
+[32m+[m[32m        val lowerText = text.lowercase()[m
+[32m+[m[32m        var priority = "Normal"[m
+[32m+[m[32m        var action = "Verify Report"[m
+[32m+[m[41m        [m
+[32m+[m[32m        when {[m
+[32m+[m[32m            // High Priority / Urgent[m
+[32m+[m[32m            lowerText.contains("fight") || lowerText.contains("accident") || lowerText.contains("fire") ||[m[41m [m
+[32m+[m[32m            lowerText.contains("danger") || lowerText.contains("injury") || lowerText.contains("blood") ||[m
+[32m+[m[32m            lowerText.contains("gun") || lowerText.contains("weapon") || lowerText.contains("patay") ||[m[41m [m
+[32m+[m[32m            lowerText.contains("sunog") || lowerText.contains("away") -> {[m
+[32m+[m[32m                priority = "High"[m
+[32m+[m[32m                action = "Call Police/Ambulance"[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            // Medium Priority[m
+[32m+[m[32m            lowerText.contains("blocked") || lowerText.contains("broken") || lowerText.contains("flood") ||[m
+[32m+[m[32m            lowerText.contains("baha") || lowerText.contains("sira") -> {[m
+[32m+[m[32m                priority = "Medium"[m
+[32m+[m[32m                action = "Maintenance Needed"[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            else -> {[m
+[32m+[m[32m                priority = "Low"[m
+[32m+[m[32m                action = "Verify Report"[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        currentAiPriority = priority[m
+[32m+[m[32m        currentAiAction = action[m
+[32m+[m[41m        [m
+[32m+[m[32m        // ALWAYS show suggestion[m
+[32m+[m[32m        CoroutineScope(Dispatchers.Main).launch {[m
+[32m+[m[32m            updateSuggestionUI(category)[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private fun getFallbackCategory(text: String): String {[m
+[32m+[m[32m        val lowerText = text.lowercase()[m
+[32m+[m[32m        var category = "Other"[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Helper regex function for whole word matching[m
+[32m+[m[32m        fun String.hasWord(word: String): Boolean {[m
+[32m+[m[32m            return Regex("\\b$word\\b").containsMatchIn(this)[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        when {[m
+[32m+[m[32m             // ... existing matches ...[m
+[32m+[m[32m             // Road: English + Filipino (lubak, sira, bitak, daan)[m
+[32m+[m[32m             lowerText.contains("road") || lowerText.contains("pothole") || lowerText.contains("crack") || lowerText.contains("asphalt") ||[m
+[32m+[m[32m             lowerText.contains("lubak") || lowerText.contains("sira") || lowerText.contains("bitak") || lowerText.hasWord("daan") -> category = "Road Damage"[m
+[32m+[m[41m             [m
+[32m+[m[32m             // Waste: English + Filipino (basura, kalat, mabaho, tapon)[m
+[32m+[m[32m             lowerText.contains("trash") || lowerText.contains("garbage") || lowerText.contains("waste") || lowerText.contains("dump") || lowerText.contains("rubbish") ||[m
+[32m+[m[32m             lowerText.contains("basura") || lowerText.contains("kalat") || lowerText.contains("mabaho") || lowerText.contains("dumi") || lowerText.contains("tambak") -> category = "Waste Management"[m
+[32m+[m[41m             [m
+[32m+[m[32m             // Light: English + Filipino (ilaw, poste, madilim, pundi)[m
+[32m+[m[32m             lowerText.contains("light") || lowerText.contains("lamp") || lowerText.contains("dark") || lowerText.contains("bulb") ||[m
+[32m+[m[32m             lowerText.contains("ilaw") || lowerText.contains("poste") || lowerText.contains("madilim") || lowerText.contains("pundi") || lowerText.contains("dilim") -> category = "Street Light"[m
+[32m+[m[41m             [m
+[32m+[m[32m             // Drainage: English + Filipino (baha, bara, tubig, kanal)[m
+[32m+[m[32m             lowerText.contains("drain") || lowerText.contains("flood") || lowerText.contains("clog") || lowerText.contains("water") || lowerText.contains("leak") ||[m
+[32m+[m[32m             lowerText.hasWord("baha") || lowerText.hasWord("bara") || lowerText.contains("tubig") || lowerText.contains("kanal") -> category = "Drainage"[m
+[32m+[m[41m             [m
+[32m+[m[32m             // Noise: English + Filipino (ingay, videoke, sigaw)[m
+[32m+[m[32m             lowerText.contains("noise") || lowerText.contains("loud") || lowerText.contains("music") || lowerText.contains("karaoke") || lowerText.contains("shouting") ||[m
+[32m+[m[32m             lowerText.contains("ingay") || lowerText.contains("videoke") || lowerText.contains("sigaw") || lowerText.contains("kanta") -> category = "Noise Complaint"[m
+[32m+[m[32m        }[m
+[32m+[m[32m        return category[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    private fun updateSuggestionUI(category: String) {[m
+[32m+[m[32m        val suggestionLayout = findViewById<LinearLayout>(R.id.ai_suggestion_layout)[m
+[32m+[m[32m        val suggestionText = findViewById<TextView>(R.id.suggested_category_text)[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Match exact casing from list[m
+[32m+[m[32m        val finalCategory = categoryNames.find { it.equals(category, ignoreCase = true) } ?: category[m
+[32m+[m[41m        [m
+[32m+[m[41m        [m
+[32m+[m[32m        suggestionText.text = finalCategory[m
+[32m+[m[32m        suggestionLayout.visibility = View.VISIBLE[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Save for submission[m
+[32m+[m[32m        currentAiClassification = finalCategory[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private fun submitReport() {[m
+[32m+[m[32m        val currentUser = auth.currentUser[m
+[32m+[m[41m        [m
+[32m+[m[32m        if (currentUser == null) {[m
+[32m+[m[32m            Toast.makeText(this, "Please log in to submit a report", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m            return[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        if (selectedCategoryIndex == -1) {[m
+[32m+[m[32m            Toast.makeText(this, "Please select a category", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m            return[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Optional: Validate description[m
+[32m+[m[32m        val description = findViewById<EditText>(R.id.issue_description).text.toString().trim()[m
+[32m+[m[32m        if (description.isEmpty()) {[m
+[32m+[m[32m             Toast.makeText(this, "Please describe the issue", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m             return[m
+[32m+[m[32m        }[m
+[32m+[m[41m        [m
+[32m+[m[32m        val location = findViewById<EditText>(R.id.issue_location).text.toString().trim()[m
+[32m+[m
+[32m+[m[32m        val submitButton = findViewById<MaterialButton>(R.id.submit_button)[m
+[32m+[m[32m        submitButton.isEnabled = false[m
+[32m+[m[32m        submitButton.text = "Submitting..."[m
+[32m+[m[41m        [m
+[32m+[m[41m        [m
+[32m+[m[32m        if (selectedImageUri != null) {[m
+[32m+[m[32m            uploadImageAndSaveReport(currentUser.uid, currentUser.email ?: "", currentUserName, categoryNames[selectedCategoryIndex], description, location, currentAiPriority, currentAiClassification, currentAiAction)[m
+[32m+[m[32m        } else {[m
+[32m+[m[32m            saveReportToFirestore(currentUser.uid, currentUser.email ?: "", currentUserName, categoryNames[selectedCategoryIndex], description, location, emptyList(), currentAiPriority, currentAiClassification, currentAiAction)[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    private fun uploadImageAndSaveReport(userId: String, email: String, name: String, category: String, description: String, location: String, aiPriority: String, aiClassification: String, aiAction: String) {[m
+[32m+[m[32m        MediaManager.get().upload(selectedImageUri)[m
+[32m+[m[32m            .unsigned("ml_default")[m
+[32m+[m[32m            .option("resource_type", "auto")[m
+[32m+[m[32m            .callback(object : UploadCallback {[m
+[32m+[m[32m                override fun onStart(requestId: String) {[m
+[32m+[m[32m                    runOnUiThread {[m
+[32m+[m[32m                        Toast.makeText(this@ReportIssueActivity, "Uploading image...", Toast.LENGTH_SHORT).show()[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m                override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) { }[m
+[32m+[m[32m                override fun onSuccess(requestId: String, resultData: Map<*, *>) {[m
+[32m+[m[32m                    val url = resultData["secure_url"] as? String ?: ""[m
+[32m+[m[32m                    saveReportToFirestore(userId, email, name, category, description, location, listOf(url), aiPriority, aiClassification, aiAction)[m
+[32m+[m[32m                }[m
+[32m+[m[32m                override fun onError(requestId: String, error: ErrorInfo) {[m
+[32m+[m[32m                    runOnUiThread {[m
+[32m+[m[32m                        val submitButton = findViewById<MaterialButton>(R.id.submit_button)[m
+[32m+[m[32m                        submitButton.isEnabled = true[m
+[32m+[m[32m                        submitButton.text = "Submit Report"[m
+[32m+[m[32m                        Toast.makeText(this@ReportIssueActivity, "Upload failed: ${error.description}", Toast.LENGTH_LONG).show()[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m                override fun onReschedule(requestId: String, error: ErrorInfo) {}[m
+[32m+[m[32m            })[m
+[32m+[m[32m            .dispatch()[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private fun saveReportToFirestore(userId: String, email: String, name: String, category: String, description: String, location: String, attachments: List<String>, aiPriority: String, aiClassification: String, aiAction: String) {[m
+[32m+[m[32m        val report = hashMapOf([m
+[32m+[m[32m            "userId" to userId,[m
+[32m+[m[32m            "category" to category,[m
+[32m+[m[32m            "status" to "received",[m
+[32m+[m[32m            "createdAt" to System.currentTimeMillis(),[m
+[32m+[m[32m            "userEmail" to email,[m
+[32m+[m[32m            "reporterName" to name,[m
+[32m+[m[32m            "description" to description,[m
+[32m+[m[32m            "location" to location,[m
+[32m+[m[32m            "attachments" to attachments,[m
+[32m+[m[32m            "aiPriority" to aiPriority,[m
+[32m+[m[32m            "aiClassification" to aiClassification,[m
+[32m+[m[32m            "aiAction" to aiAction[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m        db.collection("reports")[m
+[32m+[m[32m            .add(report)[m
+[32m+[m[32m            .addOnSuccessListener {[m
+[32m+[m[32m                val submitButton = findViewById<MaterialButton>(R.id.submit_button)[m
+[32m+[m[32m                submitButton.isEnabled = true[m
+[32m+[m[32m                submitButton.text = "Submit Report"[m
+[32m+[m[32m                showSuccessDialog()[m
+[32m+[m[32m            }[m
+[32m+[m[32m            .addOnFailureListener { exception ->[m
+[32m+[m[32m                val submitButton = findViewById<MaterialButton>(R.id.submit_button)[m
+[32m+[m[32m                submitButton.isEnabled = true[m
+[32m+[m[32m                submitButton.text = "Submit Report"[m
+[32m+[m[32m                Toast.makeText(this, "Failed to submit report: ${exception.message}", Toast.LENGTH_LONG).show()[m
+[32m+[m[32m            }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private fun showSuccessDialog() {[m
+[32m+[m[32m        val dialogView = layoutInflater.inflate(R.layout.dialog_report_submitted, null)[m
+[32m+[m[32m        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)[m
+[32m+[m[32m            .setView(dialogView)[m
+[32m+[m[32m            .setCancelable(false)[m
+[32m+[m[32m            .create()[m
+[32m+[m
+[32m+[m[32m        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)[m
+[32m+[m
+[32m+[m[32m        dialogView.findViewById<android.view.View>(R.id.btn_track_report).setOnClickListener {[m
+[32m+[m[32m            dialog.dismiss()[m
+[32m+[m[32m            startActivity(android.content.Intent(this, TrackReportsActivity::class.java))[m
+[32m+[m[32m            finish()[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        dialogView.findViewById<android.view.View>(R.id.btn_back_home).setOnClickListener {[m
+[32m+[m[32m            dialog.dismiss()[m
+[32m+[m[32m            finish()[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        dialog.show()[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private fun selectCategory(index: Int) {[m
+[32m+[m[32m        selectedCategoryIndex = index[m
+[32m+[m[32m        categories.forEachIndexed { i, layout ->[m
+[32m+[m[32m            if (i == index) {[m
+[32m+[m[32m                layout.background = ContextCompat.getDrawable(this, R.drawable.recent_activity_background)[m
+[32m+[m[32m            } else {[m
+[32m+[m[32m                layout.background = ContextCompat.getDrawable(this, R.drawable.category_card_background)[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m

@@ -314,8 +314,8 @@ class ReportIssueActivity : AppCompatActivity() {
                 Return ONLY: Category|Priority|Action
             """.trimIndent()
 
-            val jsonBody = """
-                {
+`            val jsonBody = """
+`                {
                     "model": "llama3-8b-8192",
                     "messages": [
                         {"role": "user", "content": "$prompt"}

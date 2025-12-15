@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions for small screens (sw320dp) -->
+<resources>
+    <!-- Text sizes - slightly smaller for compact screens -->
+    <dimen name="text_size_small">11sp</dimen>
+    <dimen name="text_size_body">13sp</dimen>
+    <dimen name="text_size_medium">15sp</dimen>
+    <dimen name="text_size_large">16sp</dimen>
+    <dimen name="text_size_title">18sp</dimen>
+    <dimen name="text_size_header">22sp</dimen>
+
+    <!-- Margins and Padding - reduced for small screens -->
+    <dimen name="margin_small">6dp</dimen>
+    <dimen name="margin_medium">12dp</dimen>
+    <dimen name="margin_large">18dp</dimen>
+    <dimen name="padding_small">6dp</dimen>
+    <dimen name="padding_medium">12dp</dimen>
+    <dimen name="padding_large">18dp</dimen>
+
+    <!-- Icon sizes - smaller for compact screens -->
+    <dimen name="icon_size_small">20dp</dimen>
+    <dimen name="icon_size_medium">36dp</dimen>
+    <dimen name="icon_size_large">44dp</dimen>
+
+    <!-- Card dimensions -->
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="card_elevation">3dp</dimen>
+
+    <!-- Bottom navigation height -->
+    <dimen name="bottom_nav_height">52dp</dimen>
+    <dimen name="bottom_nav_padding">72dp</dimen>
+
+    <!-- Profile/Avatar sizes -->
+    <dimen name="avatar_size_small">20dp</dimen>
+    <dimen name="avatar_size_medium">36dp</dimen>
+    <dimen name="avatar_size_large">56dp</dimen>
+</resources>
